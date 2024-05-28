@@ -36,6 +36,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.musicappui.AccountDialog
+import com.example.musicappui.AccountView
 import com.example.musicappui.MainViewModel
 import com.example.musicappui.Screen
 import com.example.musicappui.screensInDrawer
@@ -52,14 +54,15 @@ fun MainView() {
     val controller : NavController = rememberNavController()
     val NavBackStackEntry by controller.currentBackStackEntryAsState()
     val currentRoute = NavBackStackEntry?.destination?.route
-
+    val dialogOpen = remember {mutableStateOf(false)}
     val title = remember { mutableStateOf("") }
     val viewModel : MainViewModel = viewModel()
     val currentScreen = remember{viewModel.currentScreen.value}
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(text = "Home")},
+                title = { Text(text = title.value)},
                 navigationIcon = { IconButton(onClick = {
                     scope.launch {
                         scaffoldState.drawerState.open()
@@ -81,7 +84,7 @@ fun MainView() {
                             scaffoldState.drawerState.close()
                         }
                         if(item.route == "add_account"){
-
+                            dialogOpen.value = true
                         }else{
                             controller.navigate(item.route)
                             title.value = item.route
@@ -93,6 +96,8 @@ fun MainView() {
 
     ) {
         Navigation(navController = controller, viewModel = viewModel, pd =it )
+        AccountDialog(dialogOpen = dialogOpen)
+
     }
 
 }
@@ -131,9 +136,13 @@ fun Navigation(
     pd : PaddingValues
 ) {
     NavHost(navController = navController as NavHostController,
-        startDestination = Screen.DrawerScreen.AddAccount.route,
+        startDestination = Screen.DrawerScreen.Account.route,
         modifier = Modifier.padding(pd)){
-        composable(Screen.DrawerScreen.AddAccount.route){}
-        composable(Screen.DrawerScreen.Subscription.route){}
+        composable(Screen.DrawerScreen.Account.route){
+            AccountView()
+        }
+        composable(Screen.DrawerScreen.Subscription.route){
+
+        }
     }
 }

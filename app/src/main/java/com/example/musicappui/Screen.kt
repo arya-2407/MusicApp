@@ -8,12 +8,12 @@ sealed class Screen(val title : String, val route : String){
         : Screen(dTitle,dRoute){
             object Account : DrawerScreen(
                 dTitle = "Account",
-                dRoute = "account",
+                dRoute = "Account",
                 icon = R.drawable.baseline_account_circle_24
             )
             object Subscription : DrawerScreen(
                 dTitle = "Subscription",
-                dRoute = "subscribe",
+                dRoute = "Subscribe",
                 icon = R.drawable.baseline_library_music_24
             )
             object AddAccount : DrawerScreen(
