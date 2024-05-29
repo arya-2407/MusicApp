@@ -40,6 +40,7 @@ import com.example.musicappui.AccountDialog
 import com.example.musicappui.AccountView
 import com.example.musicappui.MainViewModel
 import com.example.musicappui.Screen
+import com.example.musicappui.SubscriptionView
 import com.example.musicappui.screensInDrawer
 import kotlinx.coroutines.launch
 
@@ -142,7 +143,7 @@ fun Navigation(
             AccountView()
         }
         composable(Screen.DrawerScreen.Subscription.route){
-
+            SubscriptionView()
         }
     }
 }
