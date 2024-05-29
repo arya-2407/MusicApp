@@ -3,17 +3,26 @@ package com.example.musicappui.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.BottomNavigation
 import androidx.compose.material.BottomNavigationItem
+import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.MaterialTheme
+import androidx.compose.material.ModalBottomSheetLayout
+import androidx.compose.material.ModalBottomSheetValue
 import androidx.compose.material.ScaffoldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
@@ -22,6 +31,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material.Scaffold
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.primarySurface
+import androidx.compose.material.rememberModalBottomSheetState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -33,6 +45,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
@@ -45,6 +58,7 @@ import com.example.musicappui.AccountView
 import com.example.musicappui.BrowserView
 import com.example.musicappui.HomeView
 import com.example.musicappui.MainViewModel
+import com.example.musicappui.R
 import com.example.musicappui.Screen
 import com.example.musicappui.SubscriptionView
 import com.example.musicappui.screensInBottom
@@ -52,7 +66,7 @@ import com.example.musicappui.screensInDrawer
 import kotlinx.coroutines.launch
 
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterialApi::class)
 @Composable
 fun MainView() {
 
@@ -66,6 +80,13 @@ fun MainView() {
     val title = remember { mutableStateOf("") }
     val viewModel : MainViewModel = viewModel()
     val currentScreen = remember{viewModel.currentScreen.value}
+    val isSheetFullScreen by remember{ mutableStateOf(false) }
+    val modifier = if (isSheetFullScreen) Modifier.fillMaxSize() else Modifier.fillMaxWidth()
+    val modalSheetState = rememberModalBottomSheetState(
+        initialValue = ModalBottomSheetValue.Hidden,
+        confirmValueChange = {it != ModalBottomSheetValue.HalfExpanded}
+        )
+    val roundedCornerRadius = if(isSheetFullScreen) 0.dp else 12.dp
 
     val bottomBar : @Composable () -> Unit = {
         if(currentScreen is Screen.DrawerScreen || currentScreen is Screen.BottomScreen.Home){
@@ -74,7 +95,10 @@ fun MainView() {
                     item ->
                     BottomNavigationItem(
                         selected = (currentRoute == item.route),
-                        onClick = {controller.navigate(item.route) },
+                        onClick = {
+                            controller.navigate(item.route)
+                            title.value = item.title
+                          },
                         icon = {
                             Icon(painter = painterResource(id = item.icon), contentDescription = item.title )
                         },
@@ -86,48 +110,65 @@ fun MainView() {
             }
         }
     }
-
-    Scaffold(
-        bottomBar = bottomBar,
-        topBar = {
-            TopAppBar(
-                title = { Text(text = title.value)},
-                navigationIcon = { IconButton(onClick = {
-                    scope.launch {
-                        scaffoldState.drawerState.open()
-                    }
-                }){
-                    Icon(imageVector = Icons.Default.AccountCircle, contentDescription = "Menu")
-                }
-            }
-
-            )
-        },
-        scaffoldState = scaffoldState,
-        drawerContent = {
-            LazyColumn(Modifier.padding(16.dp)){
-                items(screensInDrawer){
-                    item ->
-                    DrawerItem(selected = (currentRoute == item.route), item = item ) {
+    
+    ModalBottomSheetLayout(
+        sheetState = modalSheetState,
+        sheetShape = RoundedCornerShape(topStart = roundedCornerRadius, topEnd = roundedCornerRadius),
+        sheetContent = {
+        MoreBottomSheet(modifier = modifier)
+    }) {
+        Scaffold(
+            bottomBar = bottomBar,
+            topBar = {
+                TopAppBar(
+                    title = { Text(text = title.value)},
+                    actions = { IconButton(onClick = {
                         scope.launch {
-                            scaffoldState.drawerState.close()
+                            if(modalSheetState.isVisible) modalSheetState.hide()
+                            else modalSheetState.show()
                         }
-                        if(item.route == "add_account"){
-                            dialogOpen.value = true
-                        }else{
-                            controller.navigate(item.route)
-                            title.value = item.route
+                    }) {
+                        Icon(imageVector = Icons.Default.MoreVert, contentDescription = "Modal")
+                    }},
+                    navigationIcon = { IconButton(onClick = {
+                        scope.launch {
+                            scaffoldState.drawerState.open()
+                        }
+                    }){
+                        Icon(imageVector = Icons.Default.AccountCircle, contentDescription = "Menu")
+                    }
+                    }
+
+                )
+            },
+            scaffoldState = scaffoldState,
+            drawerContent = {
+                LazyColumn(Modifier.padding(16.dp)){
+                    items(screensInDrawer){
+                            item ->
+                        DrawerItem(selected = (currentRoute == item.route), item = item ) {
+                            scope.launch {
+                                scaffoldState.drawerState.close()
+                            }
+                            if(item.route == "add_account"){
+                                dialogOpen.value = true
+                            }else{
+                                controller.navigate(item.route)
+                                title.value = item.route
+                            }
                         }
                     }
                 }
             }
+
+        ) {
+            Navigation(navController = controller, viewModel = viewModel, pd =it )
+            AccountDialog(dialogOpen = dialogOpen)
+
         }
-
-    ) {
-        Navigation(navController = controller, viewModel = viewModel, pd =it )
-        AccountDialog(dialogOpen = dialogOpen)
-
     }
+
+
 
 }
 
@@ -184,4 +225,21 @@ fun Navigation(
         }
 
     }
+}
+
+@Composable
+fun MoreBottomSheet(modifier: Modifier) {
+    Box(modifier = Modifier
+        .fillMaxWidth()
+        .height(300.dp)
+        .background(MaterialTheme.colors.primarySurface)){
+        Column (modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.SpaceBetween){
+            Row (Modifier.padding(16.dp)){
+                Icon(modifier = Modifier.padding(end=8.dp),
+                    painter = painterResource(id = R.drawable.baseline_settings_24), contentDescription = "Settings")
+                Text(text = "Settings", fontSize = 20.sp, color = Color.White)
+            }
+        }
+    }
+
 }
